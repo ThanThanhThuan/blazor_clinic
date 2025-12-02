@@ -1,0 +1,48 @@
+﻿@inherits LayoutComponentBase
+@inject PatientPortal.UI.Services.UserSession UserSession
+@inject NavigationManager Navigation
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4 auth d-flex justify-content-between">
+            <span class="fw-bold">Current Role: @UserSession.Role</span>
+
+            <!-- THE ROLE SWITCHER -->
+            <button class="btn btn-sm @(UserSession.IsDoctor ? "btn-warning" : "btn-info")" @onclick="ToggleRole">
+                Switch to @(UserSession.IsDoctor ? "Patient" : "Doctor") View
+            </button>
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+<div id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="" class="reload">Reload</a>
+    <a class="dismiss">🗙</a>
+</div>
+
+@code {
+    private void ToggleRole()
+    {
+        if (UserSession.IsDoctor)
+        {
+            UserSession.SetPatientMode();
+            Navigation.NavigateTo("/dashboard");
+        }
+        else
+        {
+            UserSession.SetDoctorMode();
+            Navigation.NavigateTo("/doctor-dashboard");
+        }
+    }
+}
+
+

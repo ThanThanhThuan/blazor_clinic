@@ -1,0 +1,101 @@
+﻿@page "/doctor-schedule"
+@using PatientPortal.Shared
+@using PatientPortal.UI.Services
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject UserSession UserSession
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Upcoming Schedule</h3>
+        <button class="btn btn-outline-secondary" @onclick='() => Navigation.NavigateTo("/doctor-dashboard")'>
+            &larr; Back to Dashboard
+        </button>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    }
+    else if (appointments == null || !appointments.Any())
+    {
+        <div class="alert alert-info">
+            You have no upcoming appointments scheduled.
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Patient Name</th>
+                            <th>Reason for Visit</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var appt in appointments)
+                        {
+                            <!-- Highlight today's appointments -->
+                            <tr class="@(appt.AppointmentDate.Date == DateTime.Today ? "table-warning" : "")">
+                                <td>
+                                    <strong>@appt.AppointmentDate.ToShortDateString()</strong>
+                                    <br />
+                                    <span class="text-muted">@appt.AppointmentDate.ToShortTimeString()</span>
+                                </td>
+                                <td>
+                                    <span class="fw-bold text-primary">@appt.PatientName</span>
+                                </td>
+                                <td>@appt.Reason</td>
+                                <td>
+                                    @if (appt.IsConfirmed)
+                                    {
+                                        <span class="badge bg-success">Confirmed</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Pending</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<DoctorAppointmentDto> appointments;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Security check
+        if (!UserSession.IsDoctor)
+        {
+            Navigation.NavigateTo("/dashboard");
+            return;
+        }
+
+        try
+        {
+            // Fetch appointments for the current Doctor ID (from UserSession)
+            appointments = await Http.GetFromJsonAsync<List<DoctorAppointmentDto>>($"api/Portal/appointments/doctor/{UserSession.UserId}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching schedule: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

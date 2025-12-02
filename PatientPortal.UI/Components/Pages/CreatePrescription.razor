@@ -1,0 +1,82 @@
+﻿@page "/create-prescription"
+@using PatientPortal.Shared
+@using PatientPortal.UI.Services
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject UserSession UserSession
+
+<h3>New Prescription</h3>
+
+<div class="card shadow-sm" style="max-width: 600px;">
+    <div class="card-body">
+        <EditForm Model="medicalRecord" OnValidSubmit="HandleSubmit">
+            <DataAnnotationsValidator />
+
+            <!-- Select Patient -->
+            <div class="mb-3">
+                <label class="form-label">Patient</label>
+                <InputSelect class="form-select" @bind-Value="medicalRecord.PatientId">
+                    <option value="0">-- Select Patient --</option>
+                    @if (patients != null)
+                    {
+                        foreach (var p in patients)
+                        {
+                            <option value="@p.Id">@p.Name</option>
+                        }
+                    }
+                </InputSelect>
+            </div>
+
+            <!-- Drug Name -->
+            <div class="mb-3">
+                <label class="form-label">Medication Name</label>
+                <InputText class="form-control" @bind-Value="medicalRecord.Title" placeholder="e.g. Amoxicillin" />
+            </div>
+
+            <!-- Dosage/Instructions -->
+            <div class="mb-3">
+                <label class="form-label">Dosage & Instructions</label>
+                <InputTextArea class="form-control" @bind-Value="medicalRecord.Description" rows="3" placeholder="e.g. 500mg every 8 hours for 7 days" />
+            </div>
+
+            <button type="submit" class="btn btn-success">Issue Prescription</button>
+            <button type="button" class="btn btn-link" @onclick='() => Navigation.NavigateTo("/doctor-dashboard")'>Cancel</button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private MedicalRecord medicalRecord = new();
+    private List<PatientDto> patients = new();
+
+    // DTO for the dropdown
+    public class PatientDto { public int Id { get; set; } public string Name { get; set; } }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Security check
+        if (!UserSession.IsDoctor) Navigation.NavigateTo("/dashboard");
+
+        // Set defaults
+        medicalRecord.DoctorId = UserSession.UserId;
+        medicalRecord.Type = RecordType.Prescription; // Important!
+
+        // Load patients
+        try
+        {
+            patients = await Http.GetFromJsonAsync<List<PatientDto>>("api/Portal/patients");
+        }
+        catch (Exception ex) { Console.WriteLine(ex.Message); }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (medicalRecord.PatientId == 0 || string.IsNullOrWhiteSpace(medicalRecord.Title)) return;
+
+        var response = await Http.PostAsJsonAsync("api/Portal/record", medicalRecord);
+        if (response.IsSuccessStatusCode)
+        {
+            Navigation.NavigateTo("/doctor-dashboard");
+        }
+    }
+}

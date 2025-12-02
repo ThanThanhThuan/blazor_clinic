@@ -1,0 +1,42 @@
+﻿@page "/doctor-dashboard"
+@inject PatientPortal.UI.Services.UserSession UserSession
+@inject NavigationManager Navigation
+
+@if (!UserSession.IsDoctor)
+{
+    <p class="text-danger">Access Denied. Doctors only.</p>
+}
+else
+{
+    <h3>Doctor Dashboard</h3>
+    <p>Welcome, Dr. Smith.</p>
+
+    <div class="row mt-4">
+        <!-- Card: Write Prescription -->
+        <div class="col-md-4">
+            <div class="card text-center shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Write Prescription</h5>
+                    <p class="card-text">Issue medication for a patient.</p>
+                    <button class="btn btn-primary" @onclick='() => Navigation.NavigateTo("/create-prescription")'>
+                        Create New Rx
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card: View Appointments (Placeholder) -->
+        <div class="col-md-4">
+            <div class="card text-center shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Daily Schedule</h5>
+                    <p class="card-text">View today's appointments.</p>
+                    <!-- UPDATE THE BUTTON BELOW -->
+                    <button class="btn btn-secondary" @onclick='() => Navigation.NavigateTo("/doctor-schedule")'>
+                        View Schedule
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}

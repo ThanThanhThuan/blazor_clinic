@@ -1,0 +1,134 @@
+﻿@page "/book-appointment"
+@using PatientPortal.Shared
+@using System.ComponentModel.DataAnnotations
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<div class="container mt-4">
+    <div class="card shadow-sm" style="max-width: 600px; margin: auto;">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Book New Appointment</h4>
+        </div>
+        <div class="card-body">
+
+            @if (doctors == null)
+            {
+                <p><em>Loading availability...</em></p>
+            }
+            else
+            {
+                <EditForm Model="appointmentModel" OnValidSubmit="HandleValidSubmit">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="text-danger mb-3" />
+
+                    <!-- Doctor Selection -->
+                    <div class="mb-3">
+                        <label for="doctor" class="form-label">Select Doctor</label>
+                        <InputSelect id="doctor" class="form-select" @bind-Value="appointmentModel.DoctorId">
+                            <option value="0">-- Choose a Specialist --</option>
+                            @foreach (var doc in doctors)
+                            {
+                                <option value="@doc.Id">@doc.Name (@doc.Specialty)</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => appointmentModel.DoctorId)" class="text-danger" />
+                    </div>
+
+                    <!-- Date Selection -->
+                    <div class="mb-3">
+                        <label for="date" class="form-label">Requested Date & Time</label>
+                        <!-- type="datetime-local" renders a native date-time picker -->
+                        <InputDate Type="InputDateType.DateTimeLocal" id="date" class="form-control"
+                                   @bind-Value="appointmentModel.AppointmentDate" />
+                        <ValidationMessage For="@(() => appointmentModel.AppointmentDate)" class="text-danger" />
+                    </div>
+
+                    <!-- Reason -->
+                    <div class="mb-3">
+                        <label for="reason" class="form-label">Reason for Visit</label>
+                        <InputTextArea id="reason" class="form-control" rows="3"
+                                       @bind-Value="appointmentModel.Reason" placeholder="e.g. Annual Checkup, Fever..." />
+                        <ValidationMessage For="@(() => appointmentModel.Reason)" class="text-danger" />
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+                        <button type="submit" class="btn btn-success" disabled="@isSubmitting">
+                            @if (isSubmitting)
+                            {
+                                <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                                <span> Booking...</span>
+                            }
+                            else
+                            {
+                                <span>Confirm Booking</span>
+                            }
+                        </button>
+                    </div>
+                </EditForm>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private Appointment appointmentModel = new Appointment();
+    private List<DoctorDto> doctors;
+    private bool isSubmitting = false;
+
+    // Hardcoded Patient ID (In real app, get from Auth State)
+    private int currentPatientId = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // 1. Initialize default date to tomorrow 9:00 AM
+        appointmentModel.AppointmentDate = DateTime.Today.AddDays(1).AddHours(9);
+        appointmentModel.PatientId = currentPatientId;
+
+        // 2. Load Doctors from API
+        try
+        {
+            doctors = await Http.GetFromJsonAsync<List<DoctorDto>>("api/Portal/doctors");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading doctors: {ex.Message}");
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        isSubmitting = true;
+
+        try
+        {
+            // Send POST request to API
+            var response = await Http.PostAsJsonAsync("api/Portal/appointment", appointmentModel);
+
+            if (response.IsSuccessStatusCode)
+            {
+                // Redirect back to Dashboard to see the new item
+                Navigation.NavigateTo("/dashboard");
+            }
+            else
+            {
+                // Handle API error (e.g. show toast notification)
+                Console.WriteLine("Server error booking appointment");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Network error: {ex.Message}");
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/dashboard");
+    }
+}
