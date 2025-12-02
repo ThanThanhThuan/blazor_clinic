@@ -1,6 +1,6 @@
 ## Blazor Clinic
 
-This is a Clinic App using SQL Server.
+This is a Clinic Web App using SQL Server.
 Features: 
 - Appointment
 - Schedule
